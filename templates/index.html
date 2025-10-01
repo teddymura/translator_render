@@ -1,60 +1,72 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Translator with Voice</title>
-  <script>
-    async function translate() {
-      const text = document.getElementById("inputText").value;
-      const targetLang = document.getElementById("target_lang").value;
-
-      const res = await fetch("/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: text, target_lang: targetLang })
-      });
-      const data = await res.json();
-
-      document.getElementById("result").innerText = data.translated_text;
-
-      // 翻訳結果を音声出力
-      const speakRes = await fetch("/speak", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: data.translated_text, lang: targetLang })
-      });
-      const speakData = await speakRes.json();
-
-      const audio = document.getElementById("audioPlayer");
-      audio.src = speakData.audio_url;
-      audio.play();
-    }
-  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Translator with edge-tts</title>
+<style>
+body { font-family: sans-serif; padding: 10px; max-width: 600px; margin: auto; }
+input, select, button { font-size: 1em; margin: 5px 0; width: 100%; padding: 8px; }
+audio { width: 100%; margin-top: 10px; }
+</style>
 </head>
 <body>
-  <h1>🌍 Multi-language Translator with Voice</h1>
+<h2>テキスト翻訳 & 音声再生</h2>
 
-  <textarea id="inputText" rows="4" cols="50" placeholder="入力してください"></textarea><br><br>
-
-  <label>翻訳先言語: </label>
-  <select id="target_lang">
-    <option value="en">English</option>
+<form id="textForm">
+  <input type="text" id="textInput" placeholder="翻訳するテキスト">
+  <select id="targetLang">
+    <option value="en">英語</option>
     <option value="ja">日本語</option>
-    <option value="fr">Français</option>
-    <option value="de">Deutsch</option>
-    <option value="it">Italiano</option>
-    <option value="es">Español</option>
-    <option value="zh-cn">中文</option>
-    <option value="ko">한국어</option>
-    <option value="vi">Tiếng Việt</option>
+    <option value="fr">フランス語</option>
+    <option value="de">ドイツ語</option>
+    <option value="zh-cn">中国語(簡体)</option>
+    <option value="zh-tw">中国語(繁体)</option>
+    <option value="es">スペイン語</option>
+    <option value="ko">韓国語</option>
   </select>
+  <button type="submit">翻訳 + 音声再生</button>
+</form>
 
-  <br><br>
-  <button onclick="translate()">翻訳して音声出力</button>
+<p id="translatedText"></p>
+<audio id="audioPlayer" controls></audio>
 
-  <h2>翻訳結果:</h2>
-  <p id="result"></p>
+<script>
+document.getElementById("textForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = document.getElementById("textInput").value;
+  const lang = document.getElementById("targetLang").value;
+  const result = document.getElementById("translatedText");
+  const audio = document.getElementById("audioPlayer");
 
-  <audio id="audioPlayer" controls></audio>
+  result.textContent = "翻訳中…";
+
+  try {
+    const formData = new FormData();
+    formData.append("text", text);
+    formData.append("target_lang", lang);
+
+    const response = await fetch("/api/translate_tts", {
+      method: "POST",
+      body: formData
+    });
+
+    const data = await response.json();
+
+    if(data.error){
+      result.textContent = "エラー: " + data.error;
+      audio.src = "";
+    } else {
+      result.textContent = "翻訳: " + data.translated_text;
+      audio.src = data.audio_file;
+      audio.play();
+    }
+  } catch(err){
+    result.textContent = "通信エラー: " + err;
+    audio.src = "";
+  }
+});
+</script>
+
 </body>
 </html>
