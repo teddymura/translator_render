@@ -1,52 +1,60 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Text Translator</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 2em; }
-    textarea { width: 100%; height: 100px; }
-    select, button { margin-top: 1em; }
-  </style>
+  <title>Translator with Voice</title>
+  <script>
+    async function translate() {
+      const text = document.getElementById("inputText").value;
+      const targetLang = document.getElementById("target_lang").value;
+
+      const res = await fetch("/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: text, target_lang: targetLang })
+      });
+      const data = await res.json();
+
+      document.getElementById("result").innerText = data.translated_text;
+
+      // 翻訳結果を音声出力
+      const speakRes = await fetch("/speak", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: data.translated_text, lang: targetLang })
+      });
+      const speakData = await speakRes.json();
+
+      const audio = document.getElementById("audioPlayer");
+      audio.src = speakData.audio_url;
+      audio.play();
+    }
+  </script>
 </head>
 <body>
-  <h1>テキスト翻訳アプリ</h1>
-  <textarea id="input_text" placeholder="ここに翻訳したいテキストを入力してください"></textarea><br>
-  
-  <label for="target_lang">翻訳先言語:</label>
+  <h1>🌍 Multi-language Translator with Voice</h1>
+
+  <textarea id="inputText" rows="4" cols="50" placeholder="入力してください"></textarea><br><br>
+
+  <label>翻訳先言語: </label>
   <select id="target_lang">
     <option value="en">English</option>
     <option value="ja">日本語</option>
     <option value="fr">Français</option>
     <option value="de">Deutsch</option>
-    <option value="es">Español</option>
     <option value="it">Italiano</option>
+    <option value="es">Español</option>
+    <option value="zh-cn">中文</option>
+    <option value="ko">한국어</option>
     <option value="vi">Tiếng Việt</option>
-  </select><br>
+  </select>
 
-  <button onclick="translateText()">翻訳する</button>
+  <br><br>
+  <button onclick="translate()">翻訳して音声出力</button>
 
   <h2>翻訳結果:</h2>
   <p id="result"></p>
 
-  <script>
-    async function translateText() {
-      const text = document.getElementById("input_text").value;
-      const target_lang = document.getElementById("target_lang").value;
-
-      const response = await fetch("/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, target_lang })
-      });
-
-      const data = await response.json();
-      if (data.translated_text) {
-        document.getElementById("result").innerText = data.translated_text;
-      } else {
-        document.getElementById("result").innerText = "エラー: " + data.error;
-      }
-    }
-  </script>
+  <audio id="audioPlayer" controls></audio>
 </body>
 </html>
