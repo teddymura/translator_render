@@ -2,119 +2,49 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>翻訳 & TTS</title>
+  <title>Text Translator</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f7f7f7;
-    }
-    h2 {
-      text-align: center;
-    }
-    .container {
-      max-width: 500px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    textarea, select, button {
-      width: 100%;
-      margin-top: 10px;
-      font-size: 1.1em;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #007bff;
-      color: #fff;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0056b3;
-    }
-    .result {
-      margin-top: 15px;
-      padding: 10px;
-      background: #f0f0f0;
-      border-radius: 8px;
-      font-size: 1.1em;
-    }
-    audio {
-      width: 100%;
-      margin-top: 15px;
-    }
+    body { font-family: Arial, sans-serif; margin: 2em; }
+    textarea { width: 100%; height: 100px; }
+    select, button { margin-top: 1em; }
   </style>
 </head>
 <body>
-  <h2>翻訳 & 音声生成</h2>
-  <div class="container">
-    <label for="input_text">テキストを入力してください:</label>
-    <textarea id="input_text" rows="4" placeholder="ここに入力..."></textarea>
+  <h1>テキスト翻訳アプリ</h1>
+  <textarea id="input_text" placeholder="ここに翻訳したいテキストを入力してください"></textarea><br>
+  
+  <label for="target_lang">翻訳先言語:</label>
+  <select id="target_lang">
+    <option value="en">English</option>
+    <option value="ja">日本語</option>
+    <option value="fr">Français</option>
+    <option value="de">Deutsch</option>
+    <option value="es">Español</option>
+    <option value="it">Italiano</option>
+    <option value="vi">Tiếng Việt</option>
+  </select><br>
 
-    <label for="target_lang">翻訳先の言語:</label>
-    <select id="target_lang">
-      <option value="ja">日本語</option>
-      <option value="en">英語</option>
-      <option value="fr">フランス語</option>
-      <option value="de">ドイツ語</option>
-      <option value="zh-cn">中国語（簡体字）</option>
-      <option value="zh-tw">中国語（繁体字）</option>
-      <option value="es">スペイン語</option>
-      <option value="ko">韓国語</option>
-    </select>
+  <button onclick="translateText()">翻訳する</button>
 
-    <button onclick="translateText()">翻訳して音声生成</button>
-
-    <div id="status"></div>
-
-    <div class="result">
-      <p><strong>翻訳結果:</strong></p>
-      <p id="translated"></p>
-    </div>
-
-    <audio id="audio" controls></audio>
-  </div>
+  <h2>翻訳結果:</h2>
+  <p id="result"></p>
 
   <script>
     async function translateText() {
       const text = document.getElementById("input_text").value;
-      const targetLang = document.getElementById("target_lang").value;
-      const status = document.getElementById("status");
-      const translated = document.getElementById("translated");
-      const audioElem = document.getElementById("audio");
+      const target_lang = document.getElementById("target_lang").value;
 
-      if (!text.trim()) {
-        alert("テキストを入力してください。");
-        return;
-      }
+      const response = await fetch("/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, target_lang })
+      });
 
-      status.textContent = "処理中...";
-
-      const formData = new FormData();
-      formData.append("text", text);
-      formData.append("target_lang", targetLang);
-
-      try {
-        const res = await fetch("/api/translate_tts", { method: "POST", body: formData });
-        const data = await res.json();
-
-        if (data.error) {
-          status.textContent = "エラー: " + data.error;
-        } else {
-          status.textContent = "完了";
-          translated.textContent = data.translated_text;
-          audioElem.src = data.audio_file + "?t=" + new Date().getTime();
-          audioElem.play();
-        }
-      } catch (err) {
-        status.textContent = "通信エラー: " + err;
+      const data = await response.json();
+      if (data.translated_text) {
+        document.getElementById("result").innerText = data.translated_text;
+      } else {
+        document.getElementById("result").innerText = "エラー: " + data.error;
       }
     }
   </script>
